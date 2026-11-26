@@ -18,6 +18,23 @@ public class Main {
         return null;
     }
 
+    public static ArrayList<Produto> pesquisar(String nome) {
+
+        ArrayList<Produto> resultado = new ArrayList<>();
+
+        for (int i = 0; i < produtos.size(); i++) {
+
+            Produto p = produtos.get(i);
+
+            if (p.nome.toLowerCase().contains(nome.toLowerCase().trim())) {
+
+                resultado.add(p);
+            }
+        }
+
+        return resultado;
+    }
+
     public static boolean cadastrar(String nome, int quantidade, int minimo) {
 
         if (buscar(nome) != null) {

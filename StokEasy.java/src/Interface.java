@@ -1,15 +1,20 @@
 
-
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
+import java.util.ArrayList;
 
 public class Interface extends JFrame {
 
     JTextField nome = new JTextField();
     JTextField quantidade = new JTextField();
     JTextField minimo = new JTextField();
+
+    // Novo campo de pesquisa
+    JTextField pesquisa = new JTextField();
 
     DefaultTableModel modelo = new DefaultTableModel(
         new String[]{"Produto", "Quantidade", "Mínimo", "Situação"}, 0) {
@@ -28,6 +33,8 @@ public class Interface extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        // Campos de cadastro
+
         JPanel campos = new JPanel(new GridLayout(2, 3, 8, 5));
 
         campos.add(new JLabel("Nome do produto"));
@@ -38,7 +45,7 @@ public class Interface extends JFrame {
         campos.add(quantidade);
         campos.add(minimo);
 
-        // Criação dos botões
+        // Botões
 
         JPanel botoes = new JPanel(new GridLayout(1, 4, 8, 5));
 
@@ -52,19 +59,38 @@ public class Interface extends JFrame {
         botoes.add(saida);
         botoes.add(excluir);
 
-        // Organização da janela
+        // Nova barra de pesquisa
+
+        JPanel painelPesquisa = new JPanel(new BorderLayout(8, 5));
+
+        JButton limpar = new JButton("Limpar");
+
+        painelPesquisa.add(new JLabel("Pesquisar produto:"), BorderLayout.WEST);
+        painelPesquisa.add(pesquisa, BorderLayout.CENTER);
+        painelPesquisa.add(limpar, BorderLayout.EAST);
+
+        // Organização dos botões e da pesquisa
+
+        JPanel painelInferior = new JPanel(new BorderLayout(8, 8));
+
+        painelInferior.add(botoes, BorderLayout.NORTH);
+        painelInferior.add(painelPesquisa, BorderLayout.SOUTH);
+
+        // Organização da parte superior
 
         JPanel topo = new JPanel(new BorderLayout(8, 8));
 
         topo.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
         topo.add(campos, BorderLayout.CENTER);
-        topo.add(botoes, BorderLayout.SOUTH);
+        topo.add(painelInferior, BorderLayout.SOUTH);
 
         add(topo, BorderLayout.NORTH);
         add(new JScrollPane(tabela), BorderLayout.CENTER);
 
-        add(new JLabel("  Vermelho: baixo/zerado | Branco: normal | Verde: alto"), BorderLayout.SOUTH);
+        add(new JLabel(
+            "  Vermelho: baixo/zerado | Branco: normal | Verde: alto"
+        ), BorderLayout.SOUTH);
 
         tabela.setRowHeight(28);
 
@@ -79,22 +105,24 @@ public class Interface extends JFrame {
                 Component c = super.getTableCellRendererComponent(
                     t, v, selecionado, foco, linha, coluna);
 
-                Produto p = Main.produtos.get(linha);
+                Produto p = Main.buscar(
+                    t.getValueAt(linha, 0).toString()
+                );
 
-                if (p.quantidade < p.minimo) {
-
-                    c.setBackground(new Color(255, 190, 190));
-
-                } else if (p.quantidade >= p.minimo * 2) {
-
-                    c.setBackground(new Color(190, 240, 195));
-
-                } else {
-
-                    c.setBackground(Color.WHITE);
-                }
-
+                c.setBackground(Color.WHITE);
                 c.setForeground(Color.BLACK);
+
+                if (p != null) {
+
+                    if (p.quantidade < p.minimo) {
+
+                        c.setBackground(new Color(255, 190, 190));
+
+                    } else if (p.quantidade >= p.minimo * 2) {
+
+                        c.setBackground(new Color(190, 240, 195));
+                    }
+                }
 
                 return c;
             }
@@ -107,7 +135,26 @@ public class Interface extends JFrame {
         saida.addActionListener(e -> operar(3));
         excluir.addActionListener(e -> operar(4));
 
-        // Selecionar produto na tabela
+        limpar.addActionListener(e -> pesquisa.setText(""));
+
+        // Pesquisa automática
+
+        pesquisa.getDocument().addDocumentListener(new DocumentListener() {
+
+            public void insertUpdate(DocumentEvent e) {
+                atualizar();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                atualizar();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                atualizar();
+            }
+        });
+
+        // Seleção de produtos na tabela
 
         tabela.getSelectionModel().addListSelectionListener(e -> {
 
@@ -115,16 +162,23 @@ public class Interface extends JFrame {
 
             if (!e.getValueIsAdjusting() && linha >= 0) {
 
-                Produto p = Main.produtos.get(linha);
+                Produto p = Main.buscar(
+                    tabela.getValueAt(linha, 0).toString()
+                );
 
-                nome.setText(p.nome);
-                minimo.setText(String.valueOf(p.minimo));
-                quantidade.setText("");
+                if (p != null) {
+
+                    nome.setText(p.nome);
+                    minimo.setText(String.valueOf(p.minimo));
+                    quantidade.setText("");
+                }
             }
         });
+
+        atualizar();
     }
 
-    // Executar operações
+    // Operações do estoque
 
     private void operar(int opcao) {
 
@@ -151,8 +205,11 @@ public class Interface extends JFrame {
                 }
 
                 if (JOptionPane.showConfirmDialog(
-                    this, "Excluir este produto?", "Confirmar",
-                    JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
+                    this,
+                    "Excluir este produto?",
+                    "Confirmar",
+                    JOptionPane.YES_NO_OPTION
+                ) != JOptionPane.YES_OPTION) {
 
                     return;
                 }
@@ -169,7 +226,9 @@ public class Interface extends JFrame {
                     return;
                 }
 
-                int valor = Integer.parseInt(quantidade.getText().trim());
+                int valor = Integer.parseInt(
+                    quantidade.getText().trim()
+                );
 
                 if (opcao == 2) {
 
@@ -191,7 +250,8 @@ public class Interface extends JFrame {
 
             } else {
 
-                mensagem("Operação inválida: verifique os valores, duplicidade ou estoque disponível.");
+                mensagem("Operação inválida. Verifique os valores, "
+                    + "duplicidade ou estoque disponível.");
             }
 
         } catch (NumberFormatException e) {
@@ -200,7 +260,7 @@ public class Interface extends JFrame {
         }
     }
 
-    // Atualizar tabela
+    // Atualização da tabela com a pesquisa
 
     private void atualizar() {
 
@@ -208,9 +268,12 @@ public class Interface extends JFrame {
 
         modelo.setRowCount(0);
 
-        for (int i = 0; i < Main.produtos.size(); i++) {
+        ArrayList<Produto> resultado =
+            Main.pesquisar(pesquisa.getText());
 
-            Produto p = Main.produtos.get(i);
+        for (int i = 0; i < resultado.size(); i++) {
+
+            Produto p = resultado.get(i);
 
             modelo.addRow(new Object[]{
                 p.nome,
@@ -221,7 +284,7 @@ public class Interface extends JFrame {
         }
     }
 
-    // Exibir mensagens
+    // Mensagens para o usuário
 
     private void mensagem(String texto) {
 
